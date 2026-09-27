@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UK Data Jobs Market</title>
+<style>
+  :root { --bg:#f8fafc; --fg:#0f172a; --muted:#64748b; --card:#fff; --line:#e2e8f0; --accent:#2563eb; --bar:#93c5fd; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0b1120; --fg:#e2e8f0; --muted:#94a3b8; --card:#111827; --line:#1f2937; --accent:#60a5fa; --bar:#1e40af; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 system-ui, -apple-system, sans-serif; background:var(--bg); color:var(--fg); }
+  main { max-width:1100px; margin:0 auto; padding:32px 16px 64px; }
+  h1 { margin:0; font-size:28px; letter-spacing:-.02em; }
+  h2 { margin:0 0 12px; font-size:15px; }
+  .sub { color:var(--muted); margin:4px 0 20px; }
+  .filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  select, input { font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--fg); }
+  input { flex:1; min-width:180px; }
+  .chip { display:none; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:var(--accent); color:#fff; border:0; font:inherit; cursor:pointer; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:12px; margin-bottom:12px; }
+  .kpi, .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .kpi b { display:block; font-size:26px; letter-spacing:-.02em; }
+  .kpi span { color:var(--muted); font-size:13px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:12px; margin-bottom:12px; }
+  .row { display:grid; grid-template-columns:150px 1fr 56px; gap:8px; align-items:center; font-size:13px; padding:2px 0; }
+  .row .label { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .row .track { height:14px; border-radius:4px; overflow:hidden; }
+  .row .fill { height:100%; background:var(--bar); border-radius:4px; }
+  .row .val { text-align:right; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .click .row { cursor:pointer; border-radius:6px; }
+  .click .row:hover { background:var(--line); }
+  .note { color:var(--muted); font-size:12px; margin-top:8px; }
+  svg { width:100%; height:160px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:500; font-size:12px; }
+  td a { color:var(--accent); text-decoration:none; font-weight:500; }
+  .tags { color:var(--muted); font-size:12px; }
+  .scroll { overflow-x:auto; }
+  footer { color:var(--muted); font-size:12px; margin-top:24px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>UK Data Jobs Market</h1>
+  <p class="sub" id="sub">Loading…</p>
+
+  <div class="filters">
+    <select id="role"><option value="">All roles</option></select>
+    <select id="region"><option value="">All of the UK</option></select>
+    <input id="q" type="search" placeholder="Search titles or companies…">
+    <button class="chip" id="chip" title="Remove skill filter"></button>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><b id="k-ads">–</b><span>job ads</span></div>
+    <div class="kpi"><b id="k-sal">–</b><span>median advertised salary</span></div>
+    <div class="kpi"><b id="k-remote">–</b><span>remote or hybrid</span></div>
+    <div class="kpi"><b id="k-top">–</b><span id="k-top-l">most-requested skill</span></div>
+  </div>
+
+  <div class="grid">
+    <div class="card click"><h2>Most-requested skills <span class="tags">(click one to filter)</span></h2><div id="skills"></div>
+      <p class="note">% of ads mentioning each skill. Adzuna shares only the first part of each advert, so real numbers are higher.</p></div>
+    <div class="card"><h2>Median salary by region</h2><div id="salary"></div>
+      <p class="note">Only ads that state a salary. Regions with fewer than 3 are hidden.</p></div>
+  </div>
+  <div class="grid">
+    <div class="card"><h2>Top hiring companies</h2><div id="companies"></div></div>
+    <div class="card"><h2>Roles</h2><div id="roles"></div>
+      <h2 style="margin-top:20px">Live ads per day</h2><div id="trend"></div></div>
+  </div>
+
+  <div class="card">
+    <h2 id="list-title">Latest jobs</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Job</th><th>Company</th><th>Location</th><th>Salary</th><th>Posted</th></tr></thead>
+      <tbody id="list"></tbody>
+    </table></div>
+  </div>
+  <footer>Data from the <a href="https://www.adzuna.co.uk" style="color:inherit">Adzuna</a> API, collected daily by GitHub Actions. Built by Aditya Vardhan.</footer>
+</main>
+
+<script>
+let JOBS = [], HISTORY = [], skill = "";
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const money = n => n == null ? "–" : "£" + Math.round(n / 1000) + "k";
+const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const countBy = (items, key) => { const m = new Map(); for (const i of items) for (const k of [].concat(key(i))) m.set(k, (m.get(k) || 0) + 1); return [...m].sort((a, b) => b[1] - a[1]); };
+
+function bars(el, rows, fmt, max = Math.max(...rows.map(r => r[1]), 1)) {
+  $(el).innerHTML = rows.length ? rows.map(([label, v]) => `
+    <div class="row" data-k="${esc(label)}"><span class="label" title="${esc(label)}">${esc(label)}</span>
+    <span class="track"><span class="fill" style="display:block;width:${(100 * v / max).toFixed(1)}%"></span></span>
+    <span class="val">${fmt(v)}</span></div>`).join("") : `<p class="note">No data for this filter.</p>`;
+}
+
+function trend() {
+  const h = HISTORY.slice(-60);
+  if (h.length < 2) return $("trend").innerHTML = `<p class="note">The trend line appears once a few days of data have been collected.</p>`;
+  const max = Math.max(...h.map(d => d.live_ads)), W = 600, H = 150;
+  const pts = h.map((d, i) => `${(i / (h.length - 1) * W).toFixed(1)},${(H - 10 - d.live_ads / max * (H - 30)).toFixed(1)}`).join(" ");
+  $("trend").innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2.5" vector-effect="non-scaling-stroke"/></svg>
+    <p class="note">${h[0].date} → ${h.at(-1).date}: ${h[0].live_ads} → ${h.at(-1).live_ads} live ads</p>`;
+}
+
+function render() {
+  const role = $("role").value, region = $("region").value, q = $("q").value.toLowerCase();
+  const jobs = JOBS.filter(j => (!role || j.role === role) && (!region || j.region === region) && (!skill || j.skills.includes(skill))
+    && (!q || (j.title + " " + j.company).toLowerCase().includes(q)));
+  const n = jobs.length || 1, salaries = jobs.filter(j => j.salary);
+  const skills = countBy(jobs, j => j.skills);
+
+  $("k-ads").textContent = jobs.length.toLocaleString();
+  $("k-sal").textContent = money(median(salaries.map(j => j.salary)));
+  $("k-remote").textContent = Math.round(100 * jobs.filter(j => j.remote).length / n) + "%";
+  $("k-top").textContent = skills[0]?.[0] || "–";
+  $("k-top-l").textContent = skills[0] ? `most-requested skill (${Math.round(100 * skills[0][1] / n)}% of ads)` : "most-requested skill";
+
+  bars("skills", skills.slice(0, 15), v => Math.round(100 * v / n) + "%", n);
+  const byRegion = [...salaries.reduce((m, j) => m.set(j.region, [...(m.get(j.region) || []), j.salary]), new Map())]
+    .filter(([, s]) => s.length >= 3).map(([r, s]) => [r, median(s)]).sort((a, b) => b[1] - a[1]);
+  bars("salary", byRegion, money);
+  bars("companies", countBy(jobs, j => j.company).filter(([c]) => c !== "Unknown").slice(0, 10), v => v + " ads");
+  bars("roles", countBy(jobs, j => j.role), v => v + " ads");
+
+  $("list-title").textContent = `Latest jobs (${Math.min(50, jobs.length)} of ${jobs.length})`;
+  $("list").innerHTML = jobs.slice(0, 50).map(j => `<tr>
+    <td><a href="${esc(j.url)}" target="_blank" rel="noopener">${esc(j.title)}</a><div class="tags">${esc(j.skills.slice(0, 6).join(" · "))}</div></td>
+    <td>${esc(j.company)}</td><td>${esc(j.place)}${j.remote ? " · remote/hybrid" : ""}</td>
+    <td>${money(j.salary)}</td><td>${esc(j.posted)}</td></tr>`).join("");
+
+  $("chip").style.display = skill ? "inline-flex" : "none";
+  $("chip").textContent = `Skill: ${skill} ✕`;
+}
+
+$("skills").onclick = e => { const r = e.target.closest(".row"); if (r) { skill = r.dataset.k; render(); } };
+$("chip").onclick = () => { skill = ""; render(); };
+["role", "region", "q"].forEach(id => $(id).oninput = render);
+
+Promise.all(["data/jobs.json", "data/history.json"].map(u => fetch(u, { cache: "no-cache" }).then(r => r.ok ? r.json() : [])))
+  .then(([jobs, history]) => {
+    JOBS = jobs; HISTORY = history;
+    for (const [id, key] of [["role", "role"], ["region", "region"]])
+      $(id).innerHTML += countBy(JOBS, j => j[key]).map(([v, c]) => `<option value="${esc(v)}">${esc(v)} (${c})</option>`).join("");
+    const updated = HISTORY.at(-1)?.date;
+    $("sub").textContent = JOBS.length
+      ? `${JOBS.length.toLocaleString()} data science, analytics, data engineering and ML job ads from the last 90 days${updated ? `, updated ${updated}` : ""}.`
+      : "No data yet. It appears after the first daily update runs.";
+    trend(); render();
+  });
+</script>
+</body>
+</html>
