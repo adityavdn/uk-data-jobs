@@ -1,1 +1,12 @@
-[]
+[
+ {
+  "date": "2026-09-27",
+  "live_ads": 874,
+  "by_role": {
+   "Data Scientist": 250,
+   "Data Analyst": 239,
+   "Data Engineer": 180,
+   "ML Engineer": 205
+  }
+ }
+]
