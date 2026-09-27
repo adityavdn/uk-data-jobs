@@ -49,7 +49,7 @@ def clean(ad, role):
         "id": str(ad["id"]),
         "title": ad.get("title", "").strip(),
         "company": ad.get("company", {}).get("display_name", "Unknown").strip(),
-        "region": area[1] if len(area) > 1 else "UK",
+        "region": area[1] if len(area) > 1 else "Not specified",
         "place": ad.get("location", {}).get("display_name", ""),
         "role": role,
         "salary": round((ad["salary_min"] + ad.get("salary_max", ad["salary_min"])) / 2) if real_salary else None,
