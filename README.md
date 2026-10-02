@@ -1,14 +1,54 @@
 # UK Data Jobs Market
 
-**Live dashboard:** https://adityavdn.github.io/uk-data-jobs/
+A live dashboard of the UK data science job market, showing skills demand, salaries by region and hiring trends.
 
-A live picture of the UK market for data scientists, data analysts, data engineers and ML engineers:
-which skills employers want, what they pay in each region, who's hiring, and how demand changes over time.
+## Overview
 
-- **Pipeline:** `fetch.py` pulls fresh job ads from the Adzuna API every day. It runs on GitHub Actions, so there's no server.
-  It cleans the ads, removes duplicates, pulls out ~30 skills with regular expressions, and keeps 90 days of history.
-- **Dashboard:** `index.html` is a single static page. Filtering by role, region, skill or keyword updates every chart.
-- **Honest numbers:** salary stats use only salaries employers actually stated, not Adzuna's estimates.
+This project tracks the UK market for data scientists, data analysts, data engineers and machine learning engineers. It brings together job-ad data, salary information and skill demand signals in a single interactive dashboard.
 
-Run it locally: `ADZUNA_ID=... ADZUNA_KEY=... python3 fetch.py`, then `python3 -m http.server` and open http://localhost:8000.
-Run the tests with `python3 test_fetch.py`.
+## Pipeline
+
+- `fetch.py` pulls job advertisements from the Adzuna API.
+- GitHub Actions runs the fetch process automatically.
+- The data is cleaned and deduplicated before being stored as historical records.
+- A set of text-processing rules extracts relevant skills and salary signals.
+
+## Dashboard
+
+The front end is a static HTML dashboard with filters for:
+
+- role
+- region
+- skill
+- keyword
+
+It updates dynamically and presents market trends in a visual format.
+
+## Tech Stack
+
+- Python
+- JavaScript
+- HTML
+- GitHub Actions
+- Adzuna API
+
+## How to run
+
+```bash
+ADZUNA_ID=... ADZUNA_KEY=... python3 fetch.py
+python3 -m http.server
+```
+
+Then open the local dashboard in a browser.
+
+## Project structure
+
+```text
+.
+├── fetch.py
+├── test_fetch.py
+├── index.html
+├── README.md
+└── data or generated output files
+```
+
