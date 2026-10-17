@@ -1,5 +1,7 @@
 # UK Data Jobs Market
 
+![tests](https://github.com/adityavdn/uk-data-jobs/actions/workflows/tests.yml/badge.svg)
+
 A live dashboard of the UK data science job market, showing skills demand, salaries by region and hiring trends.
 
 ## Overview
