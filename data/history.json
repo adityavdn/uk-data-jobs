@@ -258,5 +258,15 @@
    "Data Engineer": 170,
    "ML Engineer": 216
   }
+ },
+ {
+  "date": "2026-10-23",
+  "live_ads": 878,
+  "by_role": {
+   "Data Scientist": 250,
+   "Data Analyst": 235,
+   "Data Engineer": 186,
+   "ML Engineer": 207
+  }
  }
 ]
